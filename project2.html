@@ -1,0 +1,192 @@
+<!DOCTYPE HTML>
+<!--
+	Strata by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Welcome To My Porfolio</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+
+	<body class="is-preload">
+
+		<!-- Header -->
+			<header id="header">
+				<div class="inner">
+					<a href="index.html" class="image avatar"><img src="images/laptop wave.png" alt="my profile pic" /></a>
+					<h1><strong>Click my avatar to go back to the index page.</strong> <br />
+					</h1>
+				</div>
+			</header>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- One -->
+					<section id="one">
+						<header class="major">
+							<h2>Seattle Library Checkout Records</br> (MySQL + Power BI) </h2>
+						</header>
+
+						<img src="images/thumbs/seattle library.jpg" alt="Seattle Library Thumbnail" style="width: 340px; height: auto; padding-bottom: 50px;"/>
+						<p>Data scholar Melanie Walsh notes that book data can offer valuable insights into our culture by revealing what communities are reading—helping us allocate resources to better meet their needs. Since 2005, the Seattle Public Library has consistently updated its checkout records and made them public. I thought it would be interesting to explore which genres are currently most popular. Additionally, with recent advances in technology (and my own growing enjoyment of the capitivating narration in audiobooks and the convenience of ebooks), I was curious about how libraries have adapted to the changes. </p>
+												
+						<h4>Step 1: Obtaining the dataset using API</h4>
+						<p>To start, I retrieved 2023 data on checkout counts by subject and data from 2006 to 2023 on checkout counts by material type, all through the library’s RESTful API. Due to hardware constraints, I worked with samples and aggregated data instead of the full dataset, which contains over 129 million rows. I made various specific API requests using queries similar to those in MySQL.</p>
+						
+						
+<h4>Step 2: Analyzing Genre Popularity - Recategorization using MySQL</h4>
+<p>I found that the subjects assigned to each book were inconsistent, which made it hard to categorize them meaningfully. So, I reorganized these subjects into clearer, more consistent categories. This helped create a tidier classification that better represents the collection overall.</p>
+<p>I started by combining the checkout record samples from January to December.</p>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css">
+						<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+						<script>document.addEventListener("DOMContentLoaded", (event) => {hljs.highlightAll(); // Initialize Highlight.js});</script>
+						
+						<style>
+    					pre {background-color: #f4f4f4; /* Light background for visibility */
+        					padding: 0px; /* Some padding for readability */
+        					margin: 5; /* Remove margin around the pre block */
+        					white-space: pre; /* Preserve whitespace and line breaks */
+    						}
+						</style>
+<pre>
+<code class="sql">
+CREATE TABLE combined_table AS
+SELECT * FROM januarysample
+UNION ALL
+SELECT * FROM februarysample
+UNION ALL
+SELECT * FROM marchsample
+UNION ALL
+SELECT * FROM aprilsample
+UNION ALL
+SELECT * FROM maysample
+UNION ALL
+SELECT * FROM junesample
+UNION ALL
+SELECT * FROM julysample
+UNION ALL
+SELECT * FROM augustsample
+UNION ALL
+SELECT * FROM septembersample
+UNION ALL
+SELECT * FROM octobersample
+UNION ALL
+SELECT * FROM novembersample
+UNION ALL
+SELECT * FROM decembersample;</code>
+</pre>
+
+<p>Then, I reorganized the subjects into revised categories, refining the CASE WHEN conditions multiple times to ensure that as many titles as possible were accurately categorized.</p>
+<pre>
+<code class="sql">
+SELECT revised_category, sum(checkouts) AS total_checkouts
+FROM(
+  SELECT subjects, checkouts,
+    CASE
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Picture Book%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Picture Book Fiction'
+     WHEN (subjects LIKE '%Fiction%' AND subjects LIKE '%Juvenile%') OR (subjects LIKE '%Literature%' AND subjects LIKE '%Juvenile%') AND subjects NOT LIKE '%Nonfiction%' THEN 'Juvenile Fiction'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Young Adult%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Young Adult Fiction'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Poetry%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Poetry'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Drama%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Drama'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Science%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Science Fiction'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Historical%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Historical Fiction'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Humor%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Humor'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Friendship%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Friendship'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Family%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Family' 
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Romance%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Romance'
+     WHEN subjects LIKE '%Fiction%' AND (subjects LIKE '%Mystery%' OR subjects LIKE '%Suspense%' OR subjects LIKE '%Thriller%') AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Mystery & Thriller & Suspense'    
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Fantasy%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Fantasy'
+     WHEN subjects LIKE '%Fiction%' AND subjects LIKE '%Literature%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Literature'
+     WHEN subjects LIKE '%Fiction%' AND subjects NOT LIKE '%Nonfiction%' THEN 'Fiction, Other'
+     WHEN subjects LIKE '%Cooking%' OR subjects LIKE '%Food%' THEN 'Nonfiction, Cooking & Food'
+     WHEN subjects LIKE '%Biography%' OR subjects LIKE '%Autobiography%' THEN 'Nonfiction, Biography & Autobiography'
+     WHEN subjects LIKE '%History%' THEN 'Nonfiction, History' 
+     WHEN subjects LIKE '%Business%' OR subjects LIKE '%Finance%' OR subjects like '%Management%'THEN 'Nonfiction, Business, Finance, Management'
+     WHEN subjects LIKE '%Health%' OR subjects LIKE '%Fitness%' THEN 'Nonfiction, Health & Fitness' 
+     WHEN subjects LIKE '%Self-improvement%' OR subjects LIKE '%Self-help%'THEN 'Nonfiction, Self-improvement & Self-help'
+     WHEN subjects LIKE '%Sports%' OR subjects LIKE '%Recreation%' THEN 'Nonfiction, Sports & Recreation'
+     WHEN subjects LIKE '%Cooking%' OR subjects LIKE '%Food%' OR subjects LIKE '%Cookbooks%' THEN 'Nonfiction, Cooking & Food'   
+     WHEN subjects LIKE '%Jazz%' OR subjects LIKE '%Music%' THEN 'Nonfiction, Music'
+     WHEN subjects LIKE '%Religion%' OR subjects LIKE '%Spirituality%' THEN 'Nonfiction, Religion & Spirituality'
+     WHEN subjects LIKE '%New Age%' THEN 'Nonfiction, New Age'
+     WHEN subjects LIKE '%Travel%' OR subjects LIKE '%Guidebooks%' THEN 'Nonfiction, Travel & Guidebooks'
+     WHEN subjects LIKE '%Nature%' OR subjects LIKE '%Gardening%' THEN 'Nonfiction, Nature & Gardening'
+     WHEN subjects LIKE '%Family%' OR subjects LIKE '%Parenting%' THEN 'Nonfiction, Family & Parenting'
+     WHEN subjects LIKE '%Relationships%' THEN 'Nonfiction, Relationships'
+     WHEN subjects LIKE '%Language%' THEN 'Nonfiction, Languages'
+     WHEN subjects LIKE '%Crafts%' THEN 'Nonfiction, Crafts'
+     WHEN subjects LIKE '%Politics%' THEN 'Nonfiction, Politics'
+     WHEN subjects LIKE '%Psychology%' THEN 'Nonfiction, Psychology'          
+     WHEN subjects LIKE '%Sociology%' THEN 'Nonfiction, Sociology'
+     WHEN subjects LIKE '%Education%' THEN 'Nonfiction, Education'
+     WHEN subjects LIKE '%Philosophy%' THEN 'Nonfiction, Philosophy'
+     WHEN subjects LIKE '%Architecture%' THEN 'Nonfiction, Architecture'
+     WHEN subjects LIKE '%Law%' THEN 'Nonfiction, Law'
+     WHEN subjects LIKE '%Literary Criticism%' THEN 'Nonfiction, Literary Criticism'          
+     WHEN subjects LIKE '%Technology%' OR subjects LIKE '%Computer%' THEN 'Nonfiction, Technology & Computer'
+     WHEN subjects LIKE '%Science%' THEN 'Nonfiction, Science'
+     WHEN subjects LIKE '%Art%' THEN 'Nonfiction, Arts'
+     WHEN subjects LIKE '%Large type books%' THEN 'Large Type Books'
+      ELSE 'Other'
+   END AS revised_category
+  FROM combined_table) AS combined_table_with_revised_category
+GROUP BY revised_category
+ORDER BY total_checkouts DESC;
+</code>
+</pre>
+
+<h4>Step 3: Analyzing Genre Popularity - Visualizations in Power BI</h4>
+<p>I used warm colors for fiction and cool colors for nonfiction in the visualizations. The largest treemap displays checkout percentages by my revised categories, with Juvenile Fiction taking up the biggest portion (15%). Personally, I read the most fiction when I was a teenager. The next largest category is Mystery, Thriller & Suspense—I think this is because mystery novels offer a neat way to explore (and experience) fear, a very common emotion, in a manageable way. </p>
+<p>Seeing the data, I realized how unbalanced people’s reading habits are, with fiction dominating at an overwhelming 70%. Nonfiction only makes up about 25% of total checkouts.
+To understand what nonfiction people are most interested in, I created a focused visualization. Biography (human stories in essence) and History topped the list, which makes sense—we’re often drawn to insights and inspiration from successful people and historical events.</p>
+
+<h4>Step 4: Analyzing Long-term Borrowing Trends & Making Short-term Forecast for Different Material Types - Visualizations in Power BI</h4>
+<p>All four visualizations were based on monthly data, but I found it easier to spot long-term trends when looking at checkouts by year. There was a noticeable rise in total checkouts from 2006, peaking in 2009, followed by a decline until 2012 when borrowings began to pick up steadily again. Another significant drop in checkouts was clearly due to the lockdowns during the pandemic. </p>
+<p>I hypothesized that the 2008 financial crisis drove more people to access free library resources instead of buying books or other media. As the economy recovered from 2009 onwards, individuals likely turned to other forms of paid entertainment, especially with streaming services like Netflix gaining significant popularity around 2010. The next visualization, which breaks down different material types, supported this hypothesis. Since 2009, borrowings of videodiscs and sound discs have declined, indicating a shift from physical CDs and VCDs to online streaming. In contrast, the borrowings of books remained relatively stable until the pandemic.</p>
+<p>Interestingly, there has been a steady rise in checkouts since 2012. Libraries began offering eBooks and audiobooks through their platforms, and with the proliferation of smartphones, new technologies like Kindle, and continually improving narration quality, eBooks and audiobooks have become increasingly popular—though physical books still accounted for the majority of borrowings. This trend shifted dramatically after the pandemic. As patrons grew used to accessing electronic materials during lockdowns, this habit persisted. Recent statistics indicate that eBooks have now surpassed the number of borrowings for physical books, and audiobooks are closely trailing behind.</p>
+<p>Personally, while I appreciate the convenience of eBooks and the immersive experience of engaging narration with audiobooks, I still love the calming experience of actually flipping through the pages of a physical book. I sincerely hope that libraries worldwide can continue to provide access to all three types of materials simultaneously.</p>
+<p>While working in Power BI, I discovered its forecasting function and was eager to give it a try. Forecasting is most accurate for short-term data with at least three cycles showing seasonal patterns, so I used the monthly checkout records from 2021 to 2023 to predict growth for 2024. To test the accuracy of this model, I compared the first quarter of the forecast with actual data from January to April and found the predictions to be reasonably accurate. After all, there is a seasonal pattern, likely coinciding with school breaks.</p>
+
+								<script>
+									document.addEventListener('DOMContentLoaded', (event) => {
+										document.querySelectorAll('pre code').forEach((block) => {
+											hljs.highlightBlock(block);
+										});
+									});
+								</script>
+							
+								
+							</body>
+						
+
+						<ul class="actions">
+							<li style="margin-left: -30px;"><a href="https://app.powerbi.com/view?r=eyJrIjoiNjY4N2EyMzAtYTdiMC00MzlhLWI3YjAtMTkyYzQ5NjFmYjgxIiwidCI6IjQyYjljNjJkLTRkZmQtNDczYi04YWI4LWEyMGQwNDQwMmY0OSJ9" class="button">Go To Visualizations</a></li>
+						</ul>
+				
+
+		<!-- Footer -->
+			<footer id="footer">
+				<div class="inner">
+				
+					<ul class="copyright">
+						<li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.poptrox.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
